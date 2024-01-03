@@ -1,4 +1,4 @@
-require 'spec_helper'
+require_relative '../spec_helper'
 require 'base32/crockford'
 
 describe ULID do
@@ -86,6 +86,29 @@ describe ULID do
     end
   end
 
+  describe 'when passed a monotonicity flag' do
+    it 'guarantees monotonicity for ULIDs generated within the same process' do
+      input_time = Time.now
+      ulid1 = ULID.generate(input_time, monotonic: true)
+      ulid2 = ULID.generate(input_time, monotonic: true)
+      decoded1 = Base32::Crockford.decode(ulid1)
+      decoded2 = Base32::Crockford.decode(ulid2)
+      assert_equal decoded2, decoded1 + 1
+    end
+
+    it 'runs reasonably quickly' do
+      start_time = Time.now
+      1000.times { ULID.generate }
+      without_monotonic_flag = Time.now - start_time
+
+      start_time = Time.now
+      1000.times { ULID.generate(monotonic: true) }
+      with_monotonic_flag = Time.now - start_time
+
+      assert with_monotonic_flag < 2 * without_monotonic_flag
+    end
+  end
+
   describe 'underlying binary' do
     it 'encodes the timestamp in the high 48 bits' do
       input_time = Time.now.utc
@@ -96,7 +119,7 @@ describe ULID do
     end
 
     it 'encodes the remaining 80 bits as random' do
-      random_bytes = SecureRandom.random_bytes(ULID::Generator::RANDOM_BITS / 8)
+      random_bytes = SecureRandom.random_bytes(ULID::Generator::RANDOM_BYTES)
       SecureRandom.stub(:random_bytes, random_bytes) do
         bytes = ULID.generate_bytes
         assert bytes[6..-1] == random_bytes

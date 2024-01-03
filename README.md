@@ -33,6 +33,7 @@ Instead, herein is proposed ULID:
 - Uses Crockford's base32 for better efficiency and readability (5 bits per character)
 - Case insensitive
 - No special characters (URL safe)
+- Monotonic sort order (correctly detects and handles the same millisecond)
 
 ### Installation
 
